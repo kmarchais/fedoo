@@ -35,11 +35,11 @@ class get_config:
     To change a configuration option use fedoo.get_config()[option] = value
     To print the current configuration use: fedoo.show_config()
 
-    Example
-    --------
-
+    Example:
+    -------
         >>> import fedoo as fd
         >>> fd.get_config()['USE_PYPARDISO'] = False
+
     """
 
     def __init__(self):

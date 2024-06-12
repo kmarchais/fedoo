@@ -1,5 +1,4 @@
-"""
-===========================================
+"""===========================================
 Geometry and Mesh (:mod:`fedoo.mesh`)
 ===========================================
 
@@ -8,7 +7,7 @@ Geometry and Mesh (:mod:`fedoo.mesh`)
 Class Mesh
 ====================
 
-.. autosummary::   
+.. autosummary::
    :toctree: generated/
    :template: custom-class-template.rst
 
@@ -21,7 +20,7 @@ Mesh manipulation functions
 
 .. autosummary::
    :toctree: generated/
-   
+
    stack
    extrude
    extract_surface
@@ -30,12 +29,12 @@ Mesh manipulation functions
 
 .. _importmesh:
 
-Import/Export Fedoo Mesh object        
+Import/Export Fedoo Mesh object
 ==================================
 
 .. autosummary::
    :toctree: generated/
-   
+
    import_file
    import_msh
    import_vtk
@@ -48,8 +47,8 @@ Mesh Creation Functions
 
 .. autosummary::
    :toctree: generated/
-   
-   rectangle_mesh 
+
+   rectangle_mesh
    box_mesh
    disk_mesh
    hole_plate_mesh
@@ -58,9 +57,9 @@ Mesh Creation Functions
    line_mesh_1D
    line_mesh
    line_mesh_cylindric
-   grid_mesh_cylindric            
+   grid_mesh_cylindric
    structured_mesh_2D
-   generate_nodes    
+   generate_nodes
 """
 
 
@@ -69,14 +68,23 @@ Mesh Creation Functions
 # for loader, module_name, is_pkg in  pkgutil.walk_packages(__path__):
 #     module = loader.find_module(module_name).load_module(module_name)
 #     exec('from .'+module_name+' import *')
-  
-from .simple import stack, rectangle_mesh, grid_mesh_cylindric, line_mesh_1D, \
-                    line_mesh, line_mesh_cylindric, box_mesh
-    
-from .importmesh import import_file, import_vtk, import_msh
 
-from .functions import extrude, extract_surface, change_elm_type, quad2tri
-
-from .structured_mesh import structured_mesh_2D, generate_nodes, \
-                             hole_plate_mesh, disk_mesh, \
-                             hollow_disk_mesh, I_shape_mesh
+from .functions import change_elm_type, extract_surface, extrude, quad2tri
+from .importmesh import import_file, import_msh, import_vtk
+from .simple import (
+    box_mesh,
+    grid_mesh_cylindric,
+    line_mesh,
+    line_mesh_1D,
+    line_mesh_cylindric,
+    rectangle_mesh,
+    stack,
+)
+from .structured_mesh import (
+    I_shape_mesh,
+    disk_mesh,
+    generate_nodes,
+    hole_plate_mesh,
+    hollow_disk_mesh,
+    structured_mesh_2D,
+)

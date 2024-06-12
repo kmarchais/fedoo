@@ -1,16 +1,15 @@
-from .modelingspace import ModelingSpace
-from .base import ConstitutiveLaw
-from .mesh import Mesh
-from .weakform import WeakForm
 from .assembly import Assembly
+from .base import ConstitutiveLaw
+from .boundary_conditions import MPC, BoundaryCondition, ListBC
 from .dataset import (
-    DataSet, 
-    MultiFrameDataSet, 
-    read_data,                      
+    DataSet,
+    MultiFrameDataSet,
+    read_data,
 )
-from .boundary_conditions import BoundaryCondition, MPC, ListBC
+from .mesh import Mesh
+from .modelingspace import ModelingSpace
 from .problem import Problem
-
+from .weakform import WeakForm
 
 __all__ = [
     "Mesh",

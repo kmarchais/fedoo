@@ -1,3 +1,6 @@
+import os
+from zipfile import Path, ZipFile
+
 import numpy as np
 
 # from fedoo.core.mesh import *
@@ -5,8 +8,6 @@ from fedoo.core.base import AssemblyBase
 
 # from fedoo.util.ExportData import ExportData
 from fedoo.core.dataset import DataSet, MultiFrameDataSet
-import os
-from zipfile import ZipFile, Path
 
 _available_output = [
     "PKII",
@@ -139,7 +140,7 @@ def _get_results(
             output_type = "GaussPoint"
         else:
             raise NameError(
-                "output_type should be either 'Node', 'Element' or 'GaussPoint'"
+                "output_type should be either 'Node', 'Element' or 'GaussPoint'",
             )
 
     if isinstance(assemb, str):
@@ -156,14 +157,12 @@ def _get_results(
             print("List of available output: ", _available_output)
             raise NameError(res, "' doens't match to any available output")
 
-    data_sav = (
-        {}
-    )  # dict to keep data in memory that may be used more that one time
+    data_sav = {}  # dict to keep data in memory that may be used more that one time
 
     if hasattr(assemb, "list_assembly"):  # AssemblySum object
         if assemb.assembly_output is None:
             raise NameError(
-                "AssemblySum objects can't be used to extract outputs"
+                "AssemblySum objects can't be used to extract outputs",
             )
         else:
             assemb = assemb.assembly_output
@@ -201,16 +200,18 @@ def _get_results(
                     try:
                         if res == "Strain":
                             data = assemb.weakform.constitutivelaw.get_strain(
-                                assemb, position=position
+                                assemb,
+                                position=position,
                             )
                         elif res == "Stress":
                             data = assemb.weakform.constitutivelaw.get_stress(
-                                assemb, position=position
+                                assemb,
+                                position=position,
                             )
                         else:
                             assert 0
                     except:
-                        raise NameError('Field "{}" not available'.format(res))
+                        raise NameError(f'Field "{res}" not available')
 
                 # keep data in memory in case it may be used later for vm, pc or pdir stress computation
                 data_sav[res] = data
@@ -334,17 +335,20 @@ def _get_results(
         elif data_type == "GaussPoint":
             if element_set is None:
                 result.gausspoint_data[res] = data
-            else:
-                if data.ndim == 1:
-                    data = data.reshape(-1, assemb.mesh.n_elements)
-                    result.gausspoint_data[res] = data[:, element_set].ravel()
-                else:  # data.ndim ==2
-                    data = data.reshape(
-                        data.shape[0], -1, assemb.mesh.n_elements
-                    )
-                    result.gausspoint_data[res] = data[
-                        :, :, element_set
-                    ].reshape(data.shape[0], -1)
+            elif data.ndim == 1:
+                data = data.reshape(-1, assemb.mesh.n_elements)
+                result.gausspoint_data[res] = data[:, element_set].ravel()
+            else:  # data.ndim ==2
+                data = data.reshape(
+                    data.shape[0],
+                    -1,
+                    assemb.mesh.n_elements,
+                )
+                result.gausspoint_data[res] = data[
+                    :,
+                    :,
+                    element_set,
+                ].reshape(data.shape[0], -1)
 
     if hasattr(pb, "time"):
         result.scalar_data["Time"] = pb.time
@@ -354,9 +358,7 @@ def _get_results(
 
 class _ProblemOutput:
     def __init__(self):
-        self.__list_output = (
-            []
-        )  # a list containint dictionnary with defined output
+        self.__list_output = []  # a list containint dictionnary with defined output
         self.data_sets = {}
 
     def add_output(
@@ -402,7 +404,7 @@ class _ProblemOutput:
             "gausspoint",
         ]:
             raise NameError(
-                "output_type should be either 'Node', 'Element' or 'GaussPoint'"
+                "output_type should be either 'Node', 'Element' or 'GaussPoint'",
             )
 
         for i, res in enumerate(output_list):
@@ -442,7 +444,7 @@ class _ProblemOutput:
         self.__list_output.append(new_output)
 
         # if file_format in ['npz', 'npz_compressed', 'fdz', 'fdz_compressed']:
-        if not (filename in self.data_sets):
+        if filename not in self.data_sets:
             if file_format == "fdz":
                 file = ZipFile(filename + ".fdz", "w")  # create a new zip file
                 mesh.save("_mesh_")  # create temp '_mesh_.vtk' file
@@ -490,7 +492,7 @@ class _ProblemOutput:
                     filename + filename_compl + "." + file_format
                 )  # filename including iter number and file format
 
-                if not (full_filename in list_full_filename):
+                if full_filename not in list_full_filename:
                     # if filename don't exist in the list we create it
                     list_filename.append(filename)
                     list_full_filename.append(full_filename)
@@ -527,11 +529,11 @@ class _ProblemOutput:
                 os.remove("_mesh_.npz")
                 file.close()
                 self.data_sets[list_filename[i]].list_data.append(
-                    Path(list_full_filename[i], iter_name)
+                    Path(list_full_filename[i], iter_name),
                 )
 
             else:
                 out.save(list_full_filename[i], compressed=list_compressed[i])
                 self.data_sets[list_filename[i]].list_data.append(
-                    list_full_filename[i]
+                    list_full_filename[i],
                 )

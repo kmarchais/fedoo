@@ -7,8 +7,7 @@ class ModelingSpace:
     __dic = {}  # dic containing all the modeling spaces
 
     def __init__(self, dimension, name="Main"):
-        """
-        Space in which are defined the coordinates and variables (ie functions over coordinates).
+        """Space in which are defined the coordinates and variables (ie functions over coordinates).
         A modeling space is required to be able to define weak equations.
 
         Parameters
@@ -28,10 +27,11 @@ class ModelingSpace:
         >>> import fedoo as fd
         >>> fd.ModelingSpace('2Dstress')
         >>> print(fd.ModelingSpace['Main'].ndim)
-        """
 
+        """
         assert isinstance(
-            dimension, str
+            dimension,
+            str,
         ), "The dimension value must be a string: '2D', '3D', '2Dplane' or '2Dstress'."
         if dimension == "2D":
             dimension = "2Dplane"
@@ -49,9 +49,7 @@ class ModelingSpace:
         self.__name = name
 
         # coordinates
-        self._coordinate = (
-            {}
-        )  # dic containing all the coordinate related to the modeling space
+        self._coordinate = {}  # dic containing all the coordinate related to the modeling space
         self._ncrd = 0
 
         # variables
@@ -77,8 +75,7 @@ class ModelingSpace:
         return cls.__dic[item]
 
     def get_dimension(self):
-        """
-        Return an str that define the dimension of the ModelingSpace:
+        """Return an str that define the dimension of the ModelingSpace:
         * '2Dplane': general 2D problems, with default coordinates 'X' and 'Y' and plane strain assumption.
         * '3D' for 3D problems with default coordinates 'X', 'Y' and 'Z'.
         * '2Dstress': same as '2D' but using plane stress assumption for mechanical problems.
@@ -91,8 +88,7 @@ class ModelingSpace:
 
     @staticmethod
     def set_active(name):
-        """
-        Static method.
+        """Static method.
         Define the active ModelingSpace from its name.
         """
         if isinstance(name, ModelingSpace):
@@ -100,7 +96,7 @@ class ModelingSpace:
         elif name in ModelingSpace.__dic:
             ModelingSpace._active = ModelingSpace.__dic[name]
         else:
-            raise NameError("{} is not a valid ModelingSpace".format(name))
+            raise NameError(f"{name} is not a valid ModelingSpace")
 
     @staticmethod
     def get_active():
@@ -143,15 +139,11 @@ class ModelingSpace:
         return self._coordinate[name]
 
     def coordinate_name(self, rank):
-        """
-        Return the rank (int) of a coordinate associated to a given name (str)
-        """
-        return list(self._coordinate.keys())[
-            list(self._variable.values()).index(rank)
-        ]
+        """Return the rank (int) of a coordinate associated to a given name (str)"""
+        return list(self._coordinate.keys())[list(self._variable.values()).index(rank)]
 
     def list_coordinates(self):
-        """return a list containing all the coordinates name"""
+        """Return a list containing all the coordinates name"""
         return self._coordinate.keys()
 
     @property
@@ -174,38 +166,27 @@ class ModelingSpace:
     def variable_alias(self, alias_name, var_name):
         """Create an alias of an existing variable."""
         assert isinstance(var_name, str), "The variable must be a string"
-        assert (
-            alias_name[:2] != "__"
-        ), "Names of variable should not begin by '__'"
+        assert alias_name[:2] != "__", "Names of variable should not begin by '__'"
 
         self._variable[alias_name] = self.variable_rank(var_name)
 
     def variable_rank(self, name):
-        """
-        Return the rank (int) of a variable associated to a given name (str)
-        """
+        """Return the rank (int) of a variable associated to a given name (str)"""
         if name not in self._variable.keys():
             assert 0, "the variable " + str(name) + " does not exist"
         return self._variable[name]
 
     def variable_name(self, rank):
-        """
-        Return the name of the variable associated to a given rank
-        """
+        """Return the name of the variable associated to a given rank"""
         # as dict keep insertion order since python 3.7, this function
         # should never returned an alias name
-        return list(self._variable.keys())[
-            list(self._variable.values()).index(rank)
-        ]
+        return list(self._variable.keys())[list(self._variable.values()).index(rank)]
 
     def new_vector(self, name, list_variables):
-        """
-        Define a vector name from a list Of Variables. 3 variables are required in 3D and 2 variables in 2D.
+        """Define a vector name from a list Of Variables. 3 variables are required in 3D and 2 variables in 2D.
         In listOfVariales, the first variable is assumed to be associated to the coordinate 'X', the second to 'Y', and the third to 'Z'
         """
-        self._vector[name] = [
-            self.variable_rank(var) for var in list_variables
-        ]
+        self._vector[name] = [self.variable_rank(var) for var in list_variables]
 
     def get_vector(self, name):
         """Return the vector (list of ndim variable ranks) associated with the given name."""
@@ -217,11 +198,11 @@ class ModelingSpace:
         return self._nvar
 
     def list_variables(self):
-        """return a list containing all the variables name"""
+        """Return a list containing all the variables name"""
         return self._variable.keys()
 
     def list_vectors(self):
-        """return a list containing all the vectors name"""
+        """Return a list containing all the vectors name"""
         return self._vector.keys()
 
     def derivative(self, u, x=0, ordre=1, decentrement=0, vir=0):
@@ -244,19 +225,12 @@ class ModelingSpace:
     def op_grad_u(self):
         if self.ndim == 3:
             return [
-                [
-                    self.derivative(namevar, namecoord)
-                    for namecoord in ["X", "Y", "Z"]
-                ]
+                [self.derivative(namevar, namecoord) for namecoord in ["X", "Y", "Z"]]
                 for namevar in ["DispX", "DispY", "DispZ"]
             ]
         else:
             return [
-                [
-                    self.derivative(namevar, namecoord)
-                    for namecoord in ["X", "Y"]
-                ]
-                + [0]
+                [self.derivative(namevar, namecoord) for namecoord in ["X", "Y"]] + [0]
                 for namevar in ["DispX", "DispY"]
             ] + [[0, 0, 0]]
 
@@ -269,13 +243,14 @@ class ModelingSpace:
             )
         else:
             return self.derivative("DispX", "X") + self.derivative(
-                "DispY", "Y"
+                "DispY",
+                "Y",
             )
 
     def op_strain(self, InitialGradDisp=None):
         # InitialGradDisp = StrainOperator.__InitialGradDisp
 
-        if (InitialGradDisp is None) or (InitialGradDisp is 0):
+        if (InitialGradDisp is None) or (InitialGradDisp == 0):
             du_dx = self.derivative("DispX", "X")
             dv_dy = self.derivative("DispY", "Y")
             du_dy = self.derivative("DispX", "Y")
@@ -305,10 +280,7 @@ class ModelingSpace:
                 eps = [
                     GradOperator[i][i]
                     + sum(
-                        [
-                            GradOperator[k][i] * InitialGradDisp[k][i]
-                            for k in range(2)
-                        ]
+                        [GradOperator[k][i] * InitialGradDisp[k][i] for k in range(2)],
                     )
                     for i in range(2)
                 ]
@@ -321,8 +293,8 @@ class ModelingSpace:
                             GradOperator[k][0] * InitialGradDisp[k][1]
                             + GradOperator[k][1] * InitialGradDisp[k][0]
                             for k in range(2)
-                        ]
-                    )
+                        ],
+                    ),
                 ]
                 eps += [0, 0]
 
@@ -330,10 +302,7 @@ class ModelingSpace:
                 eps = [
                     GradOperator[i][i]
                     + sum(
-                        [
-                            GradOperator[k][i] * InitialGradDisp[k][i]
-                            for k in range(3)
-                        ]
+                        [GradOperator[k][i] * InitialGradDisp[k][i] for k in range(3)],
                     )
                     for i in range(3)
                 ]
@@ -345,8 +314,8 @@ class ModelingSpace:
                             GradOperator[k][0] * InitialGradDisp[k][1]
                             + GradOperator[k][1] * InitialGradDisp[k][0]
                             for k in range(3)
-                        ]
-                    )
+                        ],
+                    ),
                 ]
                 eps += [
                     GradOperator[0][2]
@@ -356,8 +325,8 @@ class ModelingSpace:
                             GradOperator[k][0] * InitialGradDisp[k][2]
                             + GradOperator[k][2] * InitialGradDisp[k][0]
                             for k in range(3)
-                        ]
-                    )
+                        ],
+                    ),
                 ]
                 eps += [
                     GradOperator[1][2]
@@ -367,8 +336,8 @@ class ModelingSpace:
                             GradOperator[k][1] * InitialGradDisp[k][2]
                             + GradOperator[k][2] * InitialGradDisp[k][1]
                             for k in range(3)
-                        ]
-                    )
+                        ],
+                    ),
                 ]
 
         return eps
@@ -377,7 +346,7 @@ class ModelingSpace:
         epsX = self.derivative("DispX", "X")  # dérivée en repère locale
         xsiZ = self.derivative("RotZ", "X")  # flexion autour de Z
         gammaY = self.derivative("DispY", "X") - self.variable(
-            "RotZ"
+            "RotZ",
         )  # shear/Y
 
         if self.__ndim == 2:
@@ -387,7 +356,7 @@ class ModelingSpace:
             xsiX = self.derivative("RotX", "X")  # torsion autour de X
             xsiY = self.derivative("RotY", "X")  # flexion autour de Y
             gammaZ = self.derivative("DispZ", "X") + self.variable(
-                "RotY"
+                "RotY",
             )  # shear/Z
 
             eps = [epsX, gammaY, gammaZ, xsiX, xsiY, xsiZ]

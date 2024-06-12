@@ -1,8 +1,11 @@
 from __future__ import annotations
+
+from typing import Callable
+
 import numpy as np
+
 from fedoo.core.assembly import Assembly
 from fedoo.core.problem import Problem
-from typing import Callable, Any
 
 
 class _NonLinearBase:
@@ -16,9 +19,7 @@ class _NonLinearBase:
         # D = assembling.get_global_vector() #initial stress vector
         D = 0  # initial stress vector #will be initialized later
         self.print_info = 1  # print info of NR convergence during solve
-        self._U = (
-            0  # displacement at the end of the previous converged increment
-        )
+        self._U = 0  # displacement at the end of the previous converged increment
         self._dU = 0  # displacement increment
 
         self._err0 = None  # initial error for NR error estimation
@@ -44,16 +45,13 @@ class _NonLinearBase:
         self.__iter = 0
         self.__compteurOutput = 0
 
-        self.interval_output = (
-            -1
-        )  # save results every self.interval_output iter or time step if self.save_at_exact_time = True
+        self.interval_output = -1  # save results every self.interval_output iter or time step if self.save_at_exact_time = True
         self.save_at_exact_time = True
         self.exec_callback_at_each_iter = False
         self.err_num = 1e-8  # numerical error
 
     def get_disp(self, name="Disp"):
         """Return the displacement components.
-
 
         Parameters
         ----------
@@ -64,14 +62,14 @@ class _NonLinearBase:
         Returns
         -------
         numpy.ndarray
+
         """
-        if self._dU is 0:
+        if self._dU == 0:
             return self._get_vect_component(self._U, name)
         return self._get_vect_component(self._U + self._dU, name)
 
     def get_rot(self, name="Rot"):
         """Return the rotation components.
-
 
         Parameters
         ----------
@@ -82,20 +80,21 @@ class _NonLinearBase:
         Returns
         -------
         numpy.ndarray
+
         """
-        if self._dU is 0:
+        if self._dU == 0:
             return self._get_vect_component(self._U, name)
         return self._get_vect_component(self._U + self._dU, name)
 
     def get_temp(self):
         """Return the nodal temperature field."""
-        if self._dU is 0:
+        if self._dU == 0:
             return self._get_vect_component(self._U, "Temp")
         return self._get_vect_component(self._U + self._dU, "Temp")
 
     # Return all the dof for every variable under a vector form
     def get_dof_solution(self, name="all"):
-        if self._dU is 0:
+        if self._dU == 0:
             return self._get_vect_component(self._U, name)
         return self._get_vect_component(self._U + self._dU, name)
 
@@ -113,9 +112,7 @@ class _NonLinearBase:
     def elastic_prediction(self):
         # update the boundary conditions with the time variation
         time_end = self.time + self.dtime
-        t_fact = (time_end - self.t0) / (
-            self.tmax - self.t0
-        )  # adimensional time
+        t_fact = (time_end - self.t0) / (self.tmax - self.t0)  # adimensional time
         t_fact_old = (self.time - self.t0) / (self.tmax - self.t0)
 
         self.apply_boundary_conditions(t_fact, t_fact_old)
@@ -123,7 +120,7 @@ class _NonLinearBase:
         # build and solve the linearized system with elastic rigidty matrix
         self.updateA()  # should be the elastic rigidity matrix
         self.updateD(
-            start=True
+            start=True,
         )  # not modified in principle if dt is not modified, except the very first iteration. May be optimized by testing the change of dt
         self.solve()
 
@@ -138,7 +135,7 @@ class _NonLinearBase:
 
     def set_start(self, save_results=False, callback=None):
         # dt not used for static problem
-        if self._dU is not 0:
+        if self._dU != 0:
             self._U += self._dU
             self._dU = 0
             self._err0 = self.nr_parameters[
@@ -162,9 +159,7 @@ class _NonLinearBase:
 
     def to_start(self):
         self._dU = 0
-        self._err0 = self.nr_parameters[
-            "err0"
-        ]  # initial error for NR error estimation
+        self._err0 = self.nr_parameters["err0"]  # initial error for NR error estimation
         self.__assembly.to_start(self)
 
     def NewtonRaphsonIncrement(self):
@@ -173,8 +168,7 @@ class _NonLinearBase:
         self._dU += self.get_X()
 
     def update(self, compute="all", updateWeakForm=True):
-        """
-        Assemble the matrix including the following modification:
+        """Assemble the matrix including the following modification:
             - New initial Stress
             - New initial Displacement
             - Modification of the mesh
@@ -201,18 +195,14 @@ class _NonLinearBase:
         self._U = 0
         self._dU = 0
 
-        self._err0 = self.nr_parameters[
-            "err0"
-        ]  # initial error for NR error estimation
+        self._err0 = self.nr_parameters["err0"]  # initial error for NR error estimation
         self.t0 = 0
         self.tmax = 1
         self.__iter = 0
         self.apply_boundary_conditions()  # perhaps not usefull here as the BC will be applied in the NewTimeIncrement method ?
 
     def change_assembly(self, assembling, update=True):
-        """
-        Modify the assembly associated to the problem and update the problem (see Assembly.update for more information)
-        """
+        """Modify the assembly associated to the problem and update the problem (see Assembly.update for more information)"""
         if isinstance(assembling, str):
             assembling = Assembly[assembling]
 
@@ -221,8 +211,7 @@ class _NonLinearBase:
             self.update()
 
     def NewtonRaphsonError(self):
-        """
-        Compute the error of the Newton-Raphson algorithm
+        """Compute the error of the Newton-Raphson algorithm
         For Force and Work error criterion, the problem must be updated
         (Update method).
         """
@@ -230,12 +219,11 @@ class _NonLinearBase:
         dof_free = self._dof_free
         if len(dof_free) == 0:
             return 0
-        if (
-            self._err0 is None
-        ):  # if self._err0 is None -> initialize the value of err0
+        if self._err0 is None:  # if self._err0 is None -> initialize the value of err0
             if self.nr_parameters["criterion"] == "Displacement":
                 self._err0 = np.linalg.norm(
-                    (self._U + self._dU)[dof_free], norm_type
+                    (self._U + self._dU)[dof_free],
+                    norm_type,
                 )  # Displacement criterion
                 if self._err0 == 0:
                     self._err0 = 1
@@ -245,51 +233,42 @@ class _NonLinearBase:
                 self._err0 = 1
                 self._err0 = self.NewtonRaphsonError()
                 return 1
-        else:
-            if self.nr_parameters["criterion"] == "Displacement":
-                # return np.max(np.abs(self.get_X()[dof_free]))/self._err0  #Displacement criterion
+        elif self.nr_parameters["criterion"] == "Displacement":
+            # return np.max(np.abs(self.get_X()[dof_free]))/self._err0  #Displacement criterion
+            return (
+                np.linalg.norm(self.get_X()[dof_free], norm_type) / self._err0
+            )  # Displacement criterion
+        elif self.nr_parameters["criterion"] == "Force":  # Force criterion
+            if self.get_D() == 0:
+                return np.linalg.norm(self.get_B()[dof_free], norm_type) / self._err0
+            else:
                 return (
-                    np.linalg.norm(self.get_X()[dof_free], norm_type)
+                    np.linalg.norm(
+                        self.get_B()[dof_free] + self.get_D()[dof_free],
+                        norm_type,
+                    )
                     / self._err0
-                )  # Displacement criterion
-            elif self.nr_parameters["criterion"] == "Force":  # Force criterion
-                if self.get_D() is 0:
-                    return (
-                        np.linalg.norm(self.get_B()[dof_free], norm_type)
-                        / self._err0
-                    )
-                else:
-                    return (
-                        np.linalg.norm(
-                            self.get_B()[dof_free] + self.get_D()[dof_free],
-                            norm_type,
-                        )
-                        / self._err0
-                    )
-            else:  # self.nr_parameters['criterion'] == 'Work': #work criterion
-                if self.get_D() is 0:
-                    return (
-                        np.linalg.norm(
-                            self.get_X()[dof_free] * self.get_B()[dof_free],
-                            norm_type,
-                        )
-                        / self._err0
-                    )
-                else:
-                    return (
-                        np.linalg.norm(
-                            self.get_X()[dof_free]
-                            * (
-                                self.get_B()[dof_free] + self.get_D()[dof_free]
-                            ),
-                            norm_type,
-                        )
-                        / self._err0
-                    )
+                )
+        elif self.get_D() == 0:
+            return (
+                np.linalg.norm(
+                    self.get_X()[dof_free] * self.get_B()[dof_free],
+                    norm_type,
+                )
+                / self._err0
+            )
+        else:
+            return (
+                np.linalg.norm(
+                    self.get_X()[dof_free]
+                    * (self.get_B()[dof_free] + self.get_D()[dof_free]),
+                    norm_type,
+                )
+                / self._err0
+            )
 
     def set_nr_criterion(self, criterion="Displacement", **kargs):
-        """
-        Define the convergence criterion of the newton raphson algorith.
+        """Define the convergence criterion of the newton raphson algorith.
         For a problem pb, the newton raphson parameters can also be directly set in the
         pb.nr_parameters dict.
 
@@ -303,14 +282,14 @@ class _NonLinearBase:
         """
         if criterion not in ["Displacement", "Force", "Work"]:
             raise NameError(
-                'criterion must be set to "Displacement", "Force" or "Work"'
+                'criterion must be set to "Displacement", "Force" or "Work"',
             )
         self.nr_parameters["criterion"] = criterion
 
         for key in kargs:
             if key not in ["err0", "tol", "max_subiter"]:
                 raise NameError(
-                    "Newton Raphson parameters should be in ['err0', 'tol', 'max_subiter']"
+                    "Newton Raphson parameters should be in ['err0', 'tol', 'max_subiter']",
                 )
 
             self.nr_parameters[key] = kargs[key]
@@ -325,7 +304,7 @@ class _NonLinearBase:
         for subiter in range(max_subiter):  # newton-raphson iterations
             # update Stress and initial displacement and Update stiffness matrix
             self.update(
-                compute="vector"
+                compute="vector",
             )  # update the out of balance force vector
             self.updateD()  # required to compute the NR error
 
@@ -334,9 +313,7 @@ class _NonLinearBase:
 
             if self.print_info > 1:
                 print(
-                    "     Subiter {} - Time: {:.5f} - Err: {:.5f}".format(
-                        subiter, self.time + self.dtime, normRes
-                    )
+                    f"     Subiter {subiter} - Time: {self.time + self.dtime:.5f} - Err: {normRes:.5f}",
                 )
 
             if normRes < tol_nr:  # convergence of the NR algorithm
@@ -348,7 +325,8 @@ class _NonLinearBase:
             # self.__Assembly.current.assemble_global_mat(compute = 'matrix')
             # self.set_A(self.__Assembly.current.get_global_matrix())
             self.update(
-                compute="matrix", updateWeakForm=False
+                compute="matrix",
+                updateWeakForm=False,
             )  # assemble the tangeant matrix
             self.updateA()
 
@@ -421,8 +399,8 @@ class _NonLinearBase:
             at each time iteration.
         exec_callback_at_each_iter, bool, default = False
             If True, the callback function is executed after each time iteration.
-        """
 
+        """
         # parameters
         if tmax is not None:
             self.tmax = tmax
@@ -439,9 +417,7 @@ class _NonLinearBase:
         if exec_callback_at_each_iter is not None:
             self.exec_callback_at_each_iter = exec_callback_at_each_iter
         if interval_output is None:
-            interval_output = (
-                self.interval_output
-            )  # time step for output if save_at_exact_time == 'True' (default) or  number of iter increments between 2 output
+            interval_output = self.interval_output  # time step for output if save_at_exact_time == 'True' (default) or  number of iter increments between 2 output
 
         # if kargs: #not empty
         #    raise TypeError(f"{list(kargs)[0]} is an invalid keyword argument for the method nlsolve")
@@ -455,23 +431,20 @@ class _NonLinearBase:
         if self.save_at_exact_time:
             next_time = self.t0 + interval_output
         else:
-            next_time = (
-                self.tmax
-            )  # next_time is the next exact time where the algorithm have to stop for output purpose
+            next_time = self.tmax  # next_time is the next exact time where the algorithm have to stop for output purpose
 
         self.init_bc_start_value()
 
         self.time = self.t0  # time at the begining of the iteration
 
-        if self._U is 0:  # Initialize only if 1st step
+        if self._U == 0:  # Initialize only if 1st step
             self.initialize()
 
         restart = False  # bool to know if the iteration is another attempt
 
         while self.time < self.tmax - self.err_num:
             save_results = (self.time == next_time) or (
-                self.save_at_exact_time == False
-                and self.__iter % interval_output == 0
+                self.save_at_exact_time == False and self.__iter % interval_output == 0
             )
 
             # update next_time
@@ -495,7 +468,8 @@ class _NonLinearBase:
 
             # self.solve_time_increment = Newton Raphson loop
             convergence, nbNRiter, normRes = self.solve_time_increment(
-                max_subiter, tol_nr
+                max_subiter,
+                tol_nr,
             )
 
             if convergence:
@@ -504,9 +478,7 @@ class _NonLinearBase:
 
                 if self.print_info > 0:
                     print(
-                        "Iter {} - Time: {:.5f} - dt {:.5f} - NR iter: {} - Err: {:.5f}".format(
-                            self.__iter, self.time, dt, nbNRiter, normRes
-                        )
+                        f"Iter {self.__iter} - Time: {self.time:.5f} - dt {dt:.5f} - NR iter: {nbNRiter} - Err: {normRes:.5f}",
                     )
 
                 # Check if dt can be increased
@@ -514,30 +486,25 @@ class _NonLinearBase:
                     dt *= 1.25
                     # print('Increase the time increment to {:.5f}'.format(dt))
 
-            else:
-                if update_dt:
-                    dt *= 0.25
-                    print(
-                        "NR failed to converge (err: {:.5f}) - reduce the time increment to {:.5f}".format(
-                            normRes, dt
-                        )
-                    )
+            elif update_dt:
+                dt *= 0.25
+                print(
+                    f"NR failed to converge (err: {normRes:.5f}) - reduce the time increment to {dt:.5f}",
+                )
 
-                    if dt < dt_min:
-                        raise NameError(
-                            "Current time step is inferior to the specified minimal time step (dt_min)"
-                        )
-
-                    # reset internal variables, update Stress, initial displacement and assemble global matrix at previous time
-                    self.to_start()
-                    restart = True
-                    continue
-                else:
+                if dt < dt_min:
                     raise NameError(
-                        "Newton Raphson iteration has not converged (err: {:.5f})- Reduce the time step or use update_dt = True".format(
-                            normRes
-                        )
+                        "Current time step is inferior to the specified minimal time step (dt_min)",
                     )
+
+                # reset internal variables, update Stress, initial displacement and assemble global matrix at previous time
+                self.to_start()
+                restart = True
+                continue
+            else:
+                raise NameError(
+                    f"Newton Raphson iteration has not converged (err: {normRes:.5f})- Reduce the time step or use update_dt = True",
+                )
 
         self.set_start(True, callback)
 

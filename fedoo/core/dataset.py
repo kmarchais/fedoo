@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-import numpy as np
 import os
-from zipfile import ZipFile, Path
+from zipfile import Path, ZipFile
+
+import numpy as np
+
 from fedoo.core.mesh import Mesh
 from fedoo.util.voigt_tensors import StressTensorList
 
@@ -37,8 +39,7 @@ except ImportError:
 
 
 class DataSet:
-    """
-    Object to store, save, load and plot data associated to a mesh.
+    """Object to store, save, load and plot data associated to a mesh.
 
     DataSet have a multiframe version :py:class:`fedoo.MultiFrameDataSet` that
     is a class that encapsulate several DataSet mainly usefull for time dependent data.
@@ -51,6 +52,7 @@ class DataSet:
         dict containing the data. The default is None.
     data_type : str in {'node', 'element', 'gausspoint', 'scalar', 'all'}
         type of data. The default is 'node'.
+
     """
 
     def __init__(
@@ -76,18 +78,10 @@ class DataSet:
             elif data_type == "scalar":
                 self.scalar_data = data
             elif data_type == "all":
-                self.node_data = {
-                    k: v for k, v in data.items() if k[-2:] == "nd"
-                }
-                self.element_data = {
-                    k: v for k, v in data.items() if k[-2:] == "el"
-                }
-                self.gausspoint_data = {
-                    k: v for k, v in data.items() if k[-2:] == "gp"
-                }
-                self.scalar_data = {
-                    k: v for k, v in data.items() if k[-2:] == "sc"
-                }
+                self.node_data = {k: v for k, v in data.items() if k[-2:] == "nd"}
+                self.element_data = {k: v for k, v in data.items() if k[-2:] == "el"}
+                self.gausspoint_data = {k: v for k, v in data.items() if k[-2:] == "gp"}
+                self.scalar_data = {k: v for k, v in data.items() if k[-2:] == "sc"}
 
         self.meshplot = None
         self.meshplot_gp = None  # a mesh with discontinuity between each element to plot gauss points field
@@ -98,9 +92,8 @@ class DataSet:
         else:
             return self.get_data(items)
 
-    def add_data(self, data_set: "DataSet") -> None:
-        """
-        Update the DataSet object including all the node, element and gausspoint
+    def add_data(self, data_set: DataSet) -> None:
+        """Update the DataSet object including all the node, element and gausspoint
         data from antoher DataSet object data_set. The associated mesh is not
         modified.
         """
@@ -115,10 +108,13 @@ class DataSet:
         elm = self.mesh.elements
         nodes_gp = crd[elm.ravel()]
         element_gp = np.arange(elm.shape[0] * elm.shape[1]).reshape(
-            -1, elm.shape[1]
+            -1,
+            elm.shape[1],
         )
         self.mesh_gp = self.mesh.__class__(
-            nodes_gp, element_gp, self.mesh.elm_type
+            nodes_gp,
+            element_gp,
+            self.mesh.elm_type,
         )
         self.meshplot_gp = self.mesh_gp.to_pyvista()
 
@@ -204,21 +200,22 @@ class DataSet:
 
         **kwargs: dict, default = 15.
             See pyvista.Plotter.add_mesh() in the document of pyvista for additional usefull options.
-        """
 
+        """
         if not (USE_PYVISTA):
             raise NameError("Pyvista not installed.")
 
         if self.mesh is None:
             raise NameError(
-                "Can't generate a plot without an associated mesh. Set the mesh attribute first."
+                "Can't generate a plot without an associated mesh. Set the mesh attribute first.",
             )
 
         ndim = self.mesh.ndim
         n_physical_nodes = self.mesh.n_physical_nodes
 
         field = kargs.pop(
-            "scalars", field
+            "scalars",
+            field,
         )  # kargs scalars can be used instead of field
 
         if field is not None:
@@ -254,7 +251,7 @@ class DataSet:
                 ).T
                 # meshplot.point_data['Disp'] = U
                 meshplot.points = as_3d_coordinates(
-                    self.mesh_gp.nodes + scale * U
+                    self.mesh_gp.nodes + scale * U,
                 )
 
                 if show_nodes:
@@ -283,7 +280,7 @@ class DataSet:
             if "Disp" in self.node_data and scale != 0:
                 meshplot.points = as_3d_coordinates(
                     self.mesh.physical_nodes
-                    + scale * self.node_data["Disp"].T[:n_physical_nodes]
+                    + scale * self.node_data["Disp"].T[:n_physical_nodes],
                 )
             else:
                 meshplot.points = as_3d_coordinates(self.mesh.physical_nodes)
@@ -291,9 +288,7 @@ class DataSet:
             if data_type == "Node":
                 data = data[:n_physical_nodes]
 
-            center = 0.5 * (
-                meshplot.points.min(axis=0) + meshplot.points.max(axis=0)
-            )
+            center = 0.5 * (meshplot.points.min(axis=0) + meshplot.points.max(axis=0))
 
         backgroundplotter = True
         if USE_PYVISTA_QT and (plotter is None or plotter == "qt"):
@@ -343,7 +338,7 @@ class DataSet:
 
         pl.camera.SetFocalPoint(center)
         pl.camera.position = tuple(
-            center + np.array([0, 0, 2 * meshplot.length])
+            center + np.array([0, 0, 2 * meshplot.length]),
         )
         pl.camera.up = tuple([0, 1, 0])
         if roll != 0:
@@ -390,7 +385,7 @@ class DataSet:
                 if "Disp" in self.node_data:
                     crd_labels = as_3d_coordinates(
                         self.mesh.physical_nodes
-                        + self.node_data["Disp"].T[:n_physical_nodes]
+                        + self.node_data["Disp"].T[:n_physical_nodes],
                     )
                 else:
                     crd_labels = as_3d_coordinates(self.mesh.physical_nodes)
@@ -423,23 +418,26 @@ class DataSet:
             centers = self.mesh.element_centers
             if self.mesh.elm_type[:3] not in ["lin", "tri", "qua"]:
                 raise NameError(
-                    "Can't plot normals for volume meshes. Use fedoo.mesh.extract_surface to get a compatible mesh."
+                    "Can't plot normals for volume meshes. Use fedoo.mesh.extract_surface to get a compatible mesh.",
                 )
             normals = self.mesh.get_element_local_frame()[:, -1]
 
             if ndim < 3:
                 normals = np.column_stack(
-                    (normals, np.zeros((self.mesh.n_elements, 3 - ndim)))
+                    (normals, np.zeros((self.mesh.n_elements, 3 - ndim))),
                 )
                 centers = np.column_stack(
                     (
                         self.mesh.element_centers,
                         np.zeros((self.mesh.n_elements, 3 - ndim)),
-                    )
+                    ),
                 )
 
             pl.add_arrows(
-                centers, normals, mag=show_normals, show_scalar_bar=False
+                centers,
+                normals,
+                mag=show_normals,
+                show_scalar_bar=False,
             )
 
         # required to avoid bug for non adapted clipping range
@@ -461,7 +459,11 @@ class DataSet:
         return pl
 
     def get_data(
-        self, field, component=None, data_type=None, return_data_type=False
+        self,
+        field,
+        component=None,
+        data_type=None,
+        return_data_type=False,
     ):
         if data_type is None:  # search if field exist somewhere
             if field in self.node_data:
@@ -475,21 +477,22 @@ class DataSet:
             else:
                 raise NameError("Field data not found.")
             data = self.dict_data[data_type][field]
-        else:
-            if field in self.dict_data[data_type]:
-                data = self.dict_data[data_type][field]
-            else:  # if field is not present whith the given data_type search if it exist elsewhere and convert it
-                data, current_data_type = self.get_data(
-                    field, component, return_data_type=True
-                )
-                data = self.mesh.convert_data(
-                    data, convert_from=current_data_type, convert_to=data_type
-                )
+        elif field in self.dict_data[data_type]:
+            data = self.dict_data[data_type][field]
+        else:  # if field is not present whith the given data_type search if it exist elsewhere and convert it
+            data, current_data_type = self.get_data(
+                field,
+                component,
+                return_data_type=True,
+            )
+            data = self.mesh.convert_data(
+                data,
+                convert_from=current_data_type,
+                convert_to=data_type,
+            )
 
         if (
-            component is not None
-            and not (np.isscalar(data))
-            and len(data.shape) > 1
+            component is not None and not (np.isscalar(data)) and len(data.shape) > 1
         ):  # if data is scalar or 1d array, component ignored
             if component == "norm":
                 data = np.linalg.norm(data, axis=0)
@@ -517,7 +520,10 @@ class DataSet:
             return data
 
     def save(
-        self, filename: str, save_mesh: bool = False, compressed: bool = False
+        self,
+        filename: str,
+        save_mesh: bool = False,
+        compressed: bool = False,
     ) -> None:
         """Save data to a file.
         File type is inferred from the extension of the filename.
@@ -551,6 +557,7 @@ class DataSet:
             For vtk and msh file, the mesh is always included in the file and save_mesh have no effect.
         compressed: bool, default = False
             If True, the file is compressed if available (only for npz and fdz files)
+
         """
         ext = os.path.splitext(filename)[1]
         ext = ext.lower()
@@ -572,7 +579,9 @@ class DataSet:
             self.to_excel(filename, save_mesh)
         elif ext == ".fdz":
             self.to_fdz(
-                filename, save_mesh=True, compressed=compressed
+                filename,
+                save_mesh=True,
+                compressed=compressed,
             )  # create a new file and add the mesh
 
     def save_mesh(self, filename: str):
@@ -600,6 +609,7 @@ class DataSet:
             If False, only the data are loaded.
         iteration : int
             iteration loaded if data is a fdz object.
+
         """
         if isinstance(data, dict):
             self.load_dict(data)
@@ -629,7 +639,7 @@ class DataSet:
                 # load_mesh ignored because the mesh already in the vtk file
                 if not (USE_PYVISTA):
                     raise NameError(
-                        "Pyvista not installed. Pyvista required to load vtk meshes."
+                        "Pyvista not installed. Pyvista required to load vtk meshes.",
                     )
                 DataSet.load(self, pv.read(filename))
             elif ext == ".msh":
@@ -645,20 +655,18 @@ class DataSet:
                         os.remove("_mesh_.vtk")
                     else:
                         raise NameError(
-                            f"Specified iteration not found in the fdz {filename}."
+                            f"Specified iteration not found in the fdz {filename}.",
                         )
                 else:
                     if load_mesh:
                         self.mesh = Mesh.read(
-                            os.path.splitext(filename)[0] + ".vtk"
+                            os.path.splitext(filename)[0] + ".vtk",
                         )
                     data = np.load(filename)
 
                 self.load_dict(data)
 
-            elif ext == ".csv":
-                return NotImplemented
-            elif ext == ".xlsx":
+            elif ext == ".csv" or ext == ".xlsx":
                 return NotImplemented
 
             else:
@@ -668,17 +676,12 @@ class DataSet:
 
     def load_dict(self, data: dict) -> None:
         """Load data from a dict generated with the to_dict method.
-        The old data are erased."""
+        The old data are erased.
+        """
         self.node_data = {k[:-3]: v for k, v in data.items() if k[-2:] == "nd"}
-        self.element_data = {
-            k[:-3]: v for k, v in data.items() if k[-2:] == "el"
-        }
-        self.gausspoint_data = {
-            k[:-3]: v for k, v in data.items() if k[-2:] == "gp"
-        }
-        self.scalar_data = {
-            k[:-3]: v.item() for k, v in data.items() if k[-2:] == "sc"
-        }
+        self.element_data = {k[:-3]: v for k, v in data.items() if k[-2:] == "el"}
+        self.gausspoint_data = {k[:-3]: v for k, v in data.items() if k[-2:] == "gp"}
+        self.scalar_data = {k[:-3]: v.item() for k, v in data.items() if k[-2:] == "sc"}
         # self.scalar_data = {k[:-3]:v for k,v in data.items() if k[-2:] == 'sc'}
 
     def to_pandas(self) -> pandas.DataFrame:
@@ -691,7 +694,7 @@ class DataSet:
             )
             if n_data_type > 1:
                 raise NameError(
-                    "Can't convert to pandas DataSet with with several different data type."
+                    "Can't convert to pandas DataSet with with several different data type.",
                 )
 
             for k, v in self.node_data.items():
@@ -699,7 +702,7 @@ class DataSet:
                     out[k] = v
                 elif len(v.shape) == 2:
                     out.update(
-                        {k + "_" + str(i): v[i] for i in range(v.shape[0])}
+                        {k + "_" + str(i): v[i] for i in range(v.shape[0])},
                     )
                 else:
                     return NotImplemented
@@ -709,7 +712,7 @@ class DataSet:
                     out[k] = v
                 elif len(v.shape) == 2:
                     out.update(
-                        {k + "_" + str(i): v[i] for i in range(v.shape[0])}
+                        {k + "_" + str(i): v[i] for i in range(v.shape[0])},
                     )
                 else:
                     return NotImplemented
@@ -719,7 +722,7 @@ class DataSet:
                     out[k] = v
                 elif len(v.shape) == 2:
                     out.update(
-                        {k + "_" + str(i): v[i] for i in range(v.shape[0])}
+                        {k + "_" + str(i): v[i] for i in range(v.shape[0])},
                     )
                 else:
                     return NotImplemented
@@ -739,6 +742,7 @@ class DataSet:
             Name of the file including the path.
         save_mesh : bool (default = False)
             If True, the mesh is also saved in a vtk file using the same filename with a '.vtk' extention.
+
         """
         if USE_PANDAS:
             self.to_pandas().to_csv(filename)
@@ -758,6 +762,7 @@ class DataSet:
             Name of the file including the path.
         save_mesh : bool (default = False)
             If True, the mesh is also saved in a vtk file using the same filename with a '.vtk' extention.
+
         """
         if USE_PANDAS:
             self.to_pandas().to_excel(filename)
@@ -765,11 +770,14 @@ class DataSet:
                 self.save_mesh(filename)
         else:
             raise NameError(
-                "Pandas lib need to be installed for excel export."
+                "Pandas lib need to be installed for excel export.",
             )
 
     def to_vtk(
-        self, filename: str, binary: bool = True, gp_data_to_node: bool = True
+        self,
+        filename: str,
+        binary: bool = True,
+        gp_data_to_node: bool = True,
     ) -> None:
         """Write vtk file with the mesh and associated data.
 
@@ -785,6 +793,7 @@ class DataSet:
         gp_data_to_node : bool, default = True
             If True, the Gauss Point data are interpolated as Node data.
             If False, the Gauss Point data are ignored (vtk file don't have Gauss Point Data)
+
         """
         if USE_PYVISTA:
             binary = True
@@ -813,13 +822,14 @@ class DataSet:
             if gp_data_to_node:
                 for key in self.gausspoint_data:
                     pv_data.point_data[key] = self.get_data(
-                        key, data_type="Node"
+                        key,
+                        data_type="Node",
                     ).T
 
             return pv_data
         else:
             raise TypeError(
-                "Mesh should be defined befort converted to pyvista object"
+                "Mesh should be defined befort converted to pyvista object",
             )
 
     def to_msh(self, filename: str) -> None:
@@ -830,6 +840,7 @@ class DataSet:
         ----------
         filename : str
             Name of the file including the path.
+
         """
         from fedoo.util.mesh_writer import write_msh
 
@@ -841,7 +852,7 @@ class DataSet:
         out.update({k + "_el": v for k, v in self.element_data.items()})
         out.update({k + "_gp": v for k, v in self.gausspoint_data.items()})
         out.update(
-            {k + "_sc": np.array(v) for k, v in self.scalar_data.items()}
+            {k + "_sc": np.array(v) for k, v in self.scalar_data.items()},
         )
 
         return out
@@ -859,8 +870,8 @@ class DataSet:
         ----------
         filename : str
             Name of the file including the path.
-        """
 
+        """
         name, ext = os.path.splitext(filename)
         if ext == "":
             filename = filename + ".fdz"
@@ -889,6 +900,7 @@ class DataSet:
             Name of the file including the path.
         save_mesh : bool (default = False)
             If True, the mesh is also saved in a vtk file using the same filename with a '.vtk' extention.
+
         """
         np.savez(filename, **self.to_dict())
 
@@ -904,6 +916,7 @@ class DataSet:
             Name of the file including the path.
         save_mesh : bool (default = False)
             If True, the mesh is also saved in a vtk file using the same filename with a '.vtk' extention.
+
         """
         np.savez_compressed(filename, **self.to_dict())
 
@@ -912,7 +925,8 @@ class DataSet:
 
     @staticmethod
     def read(
-        filename: str, file_format: str = "fdz"
+        filename: str,
+        file_format: str = "fdz",
     ) -> DataSet | MultiFrameDataSet:
         return read_data(filename, file_format="fdz")
 
@@ -944,7 +958,10 @@ class MultiFrameDataSet(DataSet):
         return DataSet.__getitem__(self, items)
 
     def save_all(
-        self, filename: str, file_format: str = "fdz", compressed: bool = False
+        self,
+        filename: str,
+        file_format: str = "fdz",
+        compressed: bool = False,
     ):
         """Save all data from MultiFrameDataSet.
 
@@ -1091,6 +1108,7 @@ class MultiFrameDataSet(DataSet):
 
         **kwargs: dict, optional
             See pyvista.Plotter.add_mesh() in the document of pyvista for additional usefull options.
+
         """
         if iteration is None:
             if self.loaded_iter is None:
@@ -1131,8 +1149,7 @@ class MultiFrameDataSet(DataSet):
         show_nodes: bool | float = False,
         **kargs,
     ):
-        """
-        Generate a video of the MultiFrameDataSet object by loading iteratively every frame.
+        """Generate a video of the MultiFrameDataSet object by loading iteratively every frame.
 
         Parameters
         ----------
@@ -1162,7 +1179,7 @@ class MultiFrameDataSet(DataSet):
             Other optional parameters (see notes below)
 
         Notes
-        -----------
+        -----
         Many options are available as keyword args. Some of these options are
         directly related to pyvista options (for instance in the pyvista.plotter.add_mesh method).
         Please, refer to the documentation of pyvista for more details.
@@ -1184,14 +1201,14 @@ class MultiFrameDataSet(DataSet):
             dict containing the arguments related to scalar bar.
         * window_size : list of int (default = [1024, 768])
             Size of the video in pixel
-        """
 
+        """
         if not (USE_PYVISTA):
             raise NameError("Pyvista not installed.")
 
         if self.mesh is None:
             raise NameError(
-                "Can't generate a plot without an associated mesh. Set the mesh attribute first."
+                "Can't generate a plot without an associated mesh. Set the mesh attribute first.",
             )
 
         ndim = self.mesh.ndim
@@ -1215,7 +1232,10 @@ class MultiFrameDataSet(DataSet):
 
         # auto compute boundary
         Xmin, Xmax, clim_data = self.get_all_frame_lim(
-            field, component, data_type, scale
+            field,
+            component,
+            data_type,
+            scale,
         )
         center = (Xmin + Xmax) / 2
         if len(center) < 3:
@@ -1279,7 +1299,7 @@ class MultiFrameDataSet(DataSet):
             pl.camera.Azimuth(azimuth)
             pl.camera.Elevation(elevation)
 
-        for i in range(0, self.n_iter):
+        for i in range(self.n_iter):
             self.load(i)
             data = self.get_data(field, component, data_type)
 
@@ -1304,14 +1324,12 @@ class MultiFrameDataSet(DataSet):
                     if "Disp" in self.node_data:
                         crd_points = as_3d_coordinates(
                             self.mesh.physical_nodes
-                            + scale
-                            * self.node_data["Disp"].T[:n_physical_nodes]
+                            + scale * self.node_data["Disp"].T[:n_physical_nodes],
                         )
             else:
                 if "Disp" in self.node_data:
                     meshplot.points = as_3d_coordinates(
-                        crd
-                        + scale * self.node_data["Disp"].T[:n_physical_nodes]
+                        crd + scale * self.node_data["Disp"].T[:n_physical_nodes],
                     )
                     crd_points = meshplot.points  # alias
 
@@ -1363,9 +1381,8 @@ class MultiFrameDataSet(DataSet):
         if isinstance(list_fields, str):
             list_fields = [list_fields]
             list_indices = [list_indices]
-        else:
-            if list_indices is None:
-                list_indices = [None for field in list_fields]
+        elif list_indices is None:
+            list_indices = [None for field in list_fields]
 
         history = [[] for field in list_fields]
         for it in range(self.n_iter):
@@ -1392,7 +1409,7 @@ class MultiFrameDataSet(DataSet):
             plt.plot(t, data)
         else:
             raise NameError(
-                "Matplotlib should be installed to plot the data history"
+                "Matplotlib should be installed to plot the data history",
             )
 
     def get_all_frame_lim(self, field, component=0, data_type=None, scale=1):
@@ -1401,20 +1418,16 @@ class MultiFrameDataSet(DataSet):
         crd = self.mesh.physical_nodes
         n_physical_nodes = self.mesh.n_physical_nodes
 
-        for i in range(0, self.n_iter):
+        for i in range(self.n_iter):
             self.load(i)
-            data = self.get_data(field, component, data_type)[
-                :n_physical_nodes
-            ]
+            data = self.get_data(field, component, data_type)[:n_physical_nodes]
             clim = [
                 np.min([data.min(), clim[0]]),
                 np.max([data.max(), clim[1]]),
             ]
 
             if "Disp" in self.node_data:
-                new_crd = (
-                    crd + scale * self.node_data["Disp"].T[:n_physical_nodes]
-                )
+                new_crd = crd + scale * self.node_data["Disp"].T[:n_physical_nodes]
 
                 new_Xmin = new_crd.min(axis=0)
                 new_Xmax = new_crd.max(axis=0)
@@ -1422,12 +1435,8 @@ class MultiFrameDataSet(DataSet):
                     Xmin = new_Xmin
                     Xmax = new_Xmax
                 else:
-                    Xmin = [
-                        np.min([Xmin[i], new_Xmin[i]]) for i in range(ndim)
-                    ]
-                    Xmax = [
-                        np.max([Xmax[i], new_Xmax[i]]) for i in range(ndim)
-                    ]
+                    Xmin = [np.min([Xmin[i], new_Xmin[i]]) for i in range(ndim)]
+                    Xmax = [np.max([Xmax[i], new_Xmax[i]]) for i in range(ndim)]
 
         if "Disp" not in self.node_data:
             Xmin = self.mesh.bounding_box[0]
@@ -1464,9 +1473,7 @@ def read_data(filename: str, file_format: str = "fdz"):
         filename = dirname + os.path.basename(filename)
         file_format = file_format.lower()
     else:
-        filename = os.path.splitext(filename)[
-            0
-        ]  # remove extension for the base name
+        filename = os.path.splitext(filename)[0]  # remove extension for the base name
 
     assert dirname == "" or (os.path.isdir(dirname)), "File not found"
     if file_format[:3] in ["npz", "vtk"] and os.path.isfile(filename + ".vtk"):
